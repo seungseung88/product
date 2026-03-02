@@ -1,0 +1,5 @@
+UI -> Action -> Reducer -> Store -> UI
+
+Action: 리듀서에게 알리는 상태 변경의 추상적인 액션
+Reducer: 액션으로 새로운 앱 상태를 변경하는 메소드들 제공
+Store: 앱 전체 상태를 가지고 있음

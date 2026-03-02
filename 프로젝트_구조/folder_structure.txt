@@ -1,0 +1,53 @@
+ProductApp/
+├── App/                         # 앱 생명주기 및 진입점
+│   └── ProductApp.swift         # SwiftUI의 @main 진입점 파일
+│
+├── Domain/                      # 비즈니스 로직과 핵심 데이터 모델 (UI/Data에 의존하지 않음)
+│   ├── Models/                  # 순수 도메인 모델 (Product, ProductImage)
+│   └── Repositories/            # 데이터 처리를 위한 프로토콜(Interface)
+│
+├── Data/                        # 실제 데이터를 가져오고 변환하는 계층
+│   ├── Repositories/            # Domain/Repositories의 실제 구현체
+│   ├── Network/                 # API 통신 관련 (Router, APIClient 등)
+│   └── DTOs/                    # DTO가 위치하는 곳 (API 요청/응답용 모델)
+│       ├── Request/             # 예: CreateProductRequestDTO
+│       └── Response/            # 예: ProductResponseDTO
+│
+├── Presentation/                # 화면(UI) 및 화면 로직 (MVVM)
+│   ├── Common/                  # 공통 UI 컴포넌트, Modifier 등
+│   └── Scenes/                  # 기능(화면)별 분류
+│       ├── ProductList/
+│       │   ├── ProductListView.swift       (SwiftUI View)
+│       │   └── ProductListViewModel.swift  (ViewModel, ObservableObject 등)
+│       └── ProductDetail/       # 상세, 추가, 수정 화면 등...
+│
+├── Redux/                       # 상태 관리 (ReSwift 관련)
+│   ├── AppState.swift           # 전역 상태 정의
+│   ├── Actions/                 # ProductAction, ImageAction 등
+│   ├── Reducers/                # 뷰/비즈니스 로직에 따른 상태 변경 로직
+│   └── Middlewares/             # 비동기 통신(API) 부수 효과(RxSwift 혼합 처리 등)
+│
+└── Core/                        # 프로젝트 전반에서 쓰이는 유틸리티
+    ├── Extensions/
+    ├── Utils/
+    └── Constants/               # 에러 정의, 상수(Color, Font 등)
+
+
+1. 도메인 모델(Entity)과 DTO의 분리 (중요)
+
+project_summary.txt
+에 작성하신 Product 모델은 앱 전체(특히 UI와 Redux 상태)에서 쓰이는 **앱 내부용 모델(Domain Model)**입니다. 하지만 실제 서버 API는 앱에서 필요한 것보다 더 많거나 다른 형태의 필드(예: created_at, status_code, page_info 등)를 넘겨줄 수 있습니다.
+
+DTO를 Data 계층에 둠으로써, 서버 스펙이 변경되어도 DTO만 수정하면 되고 앱 내부의 핵심 모델(Product)과 UI는 영향을 받지 않도록(격리) 할 수 있습니다.
+
+2. ReSwift(Redux)와 MVVM의 조화
+Redux는 앱의 전역 **상태(State)**를 단일 스토어에서 관리합니다.
+
+View(ViewController): 화면을 그리고 이벤트를 ViewModel에 전달합니다.
+ViewModel: View의 입력을 받아 Redux의 Action을 Dispatch(발송)합니다. 또한 Redux 스토어의 State를 관찰(Subscribe)하여 화면에 맞게 가공한 뒤 View에 전달(RxSwift 활용)합니다.
+이러한 역할이 잘 돌아가게 하기 위해 UI(Presentation/Scenes), 상태 관리(Redux)를 폴더로 명확히 나눕니다.
+3. 유지보수 및 확장성 강화
+화면이나 기능이 많아지면 폴더가 지저분해지기 쉽습니다. Presentation/Scenes 내부에 기능별(ProductList, ProductDetail 등)로 묶어두면 관련 파일(뷰, 뷰모델)을 한곳에서 볼 수 있어 작업하기 훨씬 수월해집니다.
+
+요약하자면: DTO는 "네트워크/데이터베이스 통신을 위한 껍데기"이므로 Data 폴더 안에 넣습니다. 반면 작성해주신 Product 정보는 앱의 핵심 데이터이므로 Domain 폴더로 관리하고, 이를 Repository 계층에서 변환(DTO -> Domain Model)하여 Redux State나 ViewModel로 넘겨주는 흐름을 타시면 완벽합니다.
+
