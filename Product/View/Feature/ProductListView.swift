@@ -12,6 +12,7 @@ struct ProductListView: View {
     @State private var searchText = ""
     @State private var isPresentingEditSheet = false
     @StateObject private var viewModel = ProductListViewModel()
+    @StateObject private var imageLoader = ImageLoader()
     
     var body: some View {
         
@@ -58,7 +59,7 @@ private struct ProductRow: View {
             productSummary
         }
         .task {
-            imageLoader.loadImage(from: product)
+            imageLoader.loadImage(from: product.id)
         }
     }
     

@@ -10,18 +10,22 @@ import RxSwift
 
 struct MockProductRepository: ProductRepository {
     func getProducts(name: String = "") -> Single<[Product]> {
-
-        Single.create { single in 
+        return Single.create { single in
             
+            // JSON 파일 경로 찾기
             guard let url = Bundle.main.url(forResource: "products", withExtension: "json") else {
+                // 파일 찾을 수 없을 때 에러 방출
                 single(.failure(NSError(domain: "FileNotFound", code: -1, userInfo: nil)))
                 return Disposables.create()
             }
             do {
+                
+                // 파일 데이터 읽어오기 및 디코드
                 let data = try Data(contentsOf: url)
                 let productDTOs = try JSONDecoder().decode([ProductDTO].self, from: data)
 
-                let products = productDTOs.map { dto in 
+                // DTO -> 도메인 변환 -> 이거 Product에 만들어도 될듯?
+                let products = productDTOs.map { dto in
                     Product(
                         id: dto.id,
                         name: dto.name,
@@ -46,6 +50,32 @@ struct MockProductRepository: ProductRepository {
             
             return Disposables.create()
         }
+    }
+    
+    func getProductImage(productId: String) -> Single<Data> {
+        return Single.create { single in
+            
+            guard let url = Bundle.main.url(forResource: "productImages", withExtension: "json"),
+                  let data = try? Data(contentsOf: url),
+                  let imageDTOs = try? JSONDecoder().decode([ProductImageDTO].self, from: data)
+            else {
+                single(.failure(NSError(domain: "ImageNotFound", code: -1)))
+                return Disposables.create()
+            }
+            
+            if let targetDTO = imageDTOs.first(where: { $0.productId == productId }) {
+                if let imageData = Data(base64Encoded: targetDTO.productImage) {
+                    single(.success(imageData))
+                } else {
+                    single(.failure(NSError(domain: "DecodeError", code: -2)))
+                }
+            } else {
+                single(.failure(NSError(domain: "ImageNotFound", code: -3)))
+            }
+            
+            return Disposables.create()
+        }
+
     }
 }
 

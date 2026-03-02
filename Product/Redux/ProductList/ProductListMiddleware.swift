@@ -20,9 +20,9 @@ let productListMiddleware: Middleware<AppState> = { dispatch, getState in
 
             // 2. 만약 지나간 액션이 fetchProductRequest라면 가로채서 통신 시작
             if let productAction = action as? ProductListAction, case .fetchProductRequest(let query) = productAction {
-                let repository = MockProductRepository()
+                let productRepository = MockProductRepository()
                 
-                repository.getProducts(name: query)
+                productRepository.getProducts(name: query)
                     .subscribe(
                         onSuccess: { products in
                             dispatch(ProductListAction.fetchProductSuccess(products))

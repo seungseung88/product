@@ -12,39 +12,49 @@ import Combine
 @MainActor
 final class ImageLoader: ObservableObject {
     
-    // @Published 프로퍼티는 isLoading, image 변경은 옵저버들에게 화면을 다시 그리라는 신호를 보냄 이는 반드시 Main Thread에서 수행되어야 함 
+    // @Published 프로퍼티는 isLoading, image 변경은 옵저버들에게 화면을 다시 그리라는 신호를 보냄 이는 반드시 Main Thread에서 수행되어야 함
     @Published private(set) var image: UIImage?
-
+    @Published private(set) var isLoading = false
+    
     private let disposeBag = DisposeBag()
     private let imageCache: ImageCacheType
-
+    private let productRepository = MockProductRepository()
+    
     init(imageCache: ImageCacheType? = nil) {
         self.imageCache = imageCache ?? ImageCacheManager.shared
     }
     
-    func loadImage(from product: Product) {
-        guard let imageData = product.imageData else { return }
+    func loadImage(from productId: String) {
         
-        if let cachedImage = imageCache.getCachedImage(for: product.id) {
+        // 로딩 중일 때 중복 요청 방지
+        guard !isLoading else { return }
+        
+        // 캐쉬 확인
+        if let cachedImage = imageCache.getCachedImage(for: productId) {
             self.image = cachedImage
             return
         }
         
-       Single<UIImage?>.create { single in
-           let decodedImage = UIImage(data: imageData)
-           single(.success(decodedImage))
-           return Disposables.create()
-       }
-       .subscribe(on: ConcurrentDispatchQueueScheduler(qos: .userInitiated))
-       .observe(on: MainScheduler.instance)
-       .subscribe(
-           onSuccess: { [weak self] decodedImage in
-               guard let self, let decodedImage else { return }
-               self.imageCache.setImage(decodedImage, for: product.id)
-               self.image = decodedImage
-           }
-       )
-       .disposed(by: disposeBag)
+        // 비동기 객체 생성
+        productRepository.getProductImage(productId: productId)
+            .map { imageData -> UIImage? in
+                return UIImage(data: imageData)
+            }
+            .subscribe(on: ConcurrentDispatchQueueScheduler(qos: .userInitiated))
+            .observe(on: MainScheduler.instance)
+            .subscribe(
+                onSuccess: { decodedImage in
+                    guard let decodedImage else { return }
+                    self.isLoading = false
+                    self.imageCache.setImage(decodedImage, for: productId)
+                    self.image = decodedImage
+                },
+                onFailure: { error in
+                    self.isLoading = false
+                    print("이미지 로드 실패!")
+                }
+            )
+            .disposed(by: disposeBag)
     }
 }
 
