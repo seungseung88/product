@@ -18,10 +18,11 @@ final class ImageLoader: ObservableObject {
     
     private let disposeBag = DisposeBag()
     private let imageCache: ImageCacheType
-    private let productRepository = MockProductRepository()
+    private let productRepository: ProductRepository
     
-    init(imageCache: ImageCacheType? = nil) {
+    init(imageCache: ImageCacheType? = nil, productRepository: ProductRepository) {
         self.imageCache = imageCache ?? ImageCacheManager.shared
+        self.productRepository = productRepository
     }
     
     func loadImage(from productId: String) {
@@ -34,6 +35,8 @@ final class ImageLoader: ObservableObject {
             self.image = cachedImage
             return
         }
+        // 비동기 객체 생성 전에 로딩 상태를 켭니다!
+        self.isLoading = true
         
         // 비동기 객체 생성
         productRepository.getProductImage(productId: productId)
@@ -51,7 +54,6 @@ final class ImageLoader: ObservableObject {
                 },
                 onFailure: { error in
                     self.isLoading = false
-                    print("이미지 로드 실패!")
                 }
             )
             .disposed(by: disposeBag)

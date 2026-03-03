@@ -9,20 +9,31 @@ import SwiftUI
 
 struct ProductListView: View {
     
-    @State private var searchText = ""
+    @State private var isErrorPresented = false
     @State private var isPresentingEditSheet = false
-    @StateObject private var viewModel = ProductListViewModel()
-    @StateObject private var imageLoader = ImageLoader()
+    @StateObject private var viewModel = ProductListViewModel(store: store)
     
     var body: some View {
-        
         NavigationStack {
-            List(viewModel.products) { product in
-                NavigationLink(value: product.id) {
-                    ProductRow(product: product)
+            Group {
+                if viewModel.isLoading {
+                    ListSkeleton()
+                } else if viewModel.products.isEmpty {
+                    EmptyState()
+                } else {
+                    List(viewModel.products) { product in
+                        NavigationLink(value: product.id) {
+                            ProductRow(
+                                product: product,
+                                image: viewModel.imageCache.getCachedImage(for: product.id)
+                            ) {
+                                viewModel.loadImage(for: product.id)
+                            }
+                        }
+                    }
+                    .listStyle(.plain)
                 }
             }
-            .listStyle(.plain)
             .searchable(text: $viewModel.searchText)
             .navigationTitle("상품 리스트")
             .toolbar {
@@ -41,15 +52,65 @@ struct ProductListView: View {
                 Text("productId: \(productId)")
             }
             .onAppear {
-                viewModel.onAppear()
+                viewModel.loadProducts()
             }
+            .listFetchErrorAlert(isPresented: $isErrorPresented) {
+                viewModel.clearError()
+            }
+            .onChange(of: viewModel.errorMessage) { _, newErrorMessage in
+                if newErrorMessage != nil {
+                    isErrorPresented = true
+                }
+            }
+            
+        }
+    }
+}
+
+private struct ListSkeleton: View {
+    var body: some View {
+        List(1...3, id: \.self) { _ in
+            HStack(spacing: 12) {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(.tertiarySystemGroupedBackground))
+                    .frame(width: 64, height: 64)
+                    
+                    
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color(.tertiarySystemGroupedBackground))
+                        .frame(height: 16)
+                    
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color(.tertiarySystemGroupedBackground))
+                        .frame(width: 120, height: 14)
+                }
+                .alignmentGuide(.listRowSeparatorLeading) { dimension in
+                    dimension[.leading]
+                }
+            }
+            
+            
+        }
+        .listStyle(.plain)
+    }
+}
+
+private struct EmptyState: View {
+    var body: some View {
+        ContentUnavailableView {
+            Label("아이템 없음", systemImage: "shippingbox")
+        } description: {
+            Text("아이템 추가해주세요")
         }
     }
 }
 
 private struct ProductRow: View {
     let product: Product
-    @StateObject private var imageLoader = ImageLoader()
+    let image: UIImage?
+    let action: () -> Void
     
     var body: some View {
         HStack(spacing: 12) {
@@ -58,15 +119,15 @@ private struct ProductRow: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             productSummary
         }
-        .task {
-            imageLoader.loadImage(from: product.id)
+        .onAppear() {
+            action()
         }
     }
     
     private var productImage: some View {
         Group {
-            if let loadedImage = imageLoader.image {
-                Image(uiImage: loadedImage)
+            if let image {
+                Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
             } else {
@@ -86,7 +147,7 @@ private struct ProductRow: View {
             HStack(alignment: .bottom, spacing: 4) {
                 Text("₩")
                     .font(.caption)
-
+                
                 Text(product.price.formattedPrice)
                     .font(.subheadline)
             }
@@ -95,6 +156,20 @@ private struct ProductRow: View {
     }
 }
 
-#Preview {
+#Preview("일반") {
     ProductListView()
+}
+
+#Preview("Empty View") {
+    NavigationStack {
+        EmptyState()
+            .navigationTitle("상품 관리")
+    }
+}
+
+#Preview("Skeleton View") {
+    NavigationStack {
+        ListSkeleton()
+            .navigationTitle("상품 관리")
+    }
 }

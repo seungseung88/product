@@ -10,4 +10,6 @@ struct ProductListState {
     var isLoading = false
     var errorMessage: String?
     var searchQuery = ""
+    
+    var productImageIDs: Set<String> = []
 }

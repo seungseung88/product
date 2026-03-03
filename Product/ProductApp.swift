@@ -11,7 +11,10 @@ import SwiftUI
 let store = Store<AppState>(
     reducer: appReducer,
     state: nil,
-    middleware: [productListMiddleware]
+    middleware: [
+        makeProductListMiddleware(repository: ProductRepositoryImpl()),
+        makeImageMiddleware(repository: ProductRepositoryImpl()),
+    ]
 )
 
 @main

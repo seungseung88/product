@@ -16,16 +16,24 @@ func productListReducer(action: Action, state: ProductListState?) -> ProductList
     }
     
     switch productListAction {
-    case .updateSearchQuery(let query):
+    case let .updateSearchQuery(query):
         state.searchQuery = query
     case .fetchProductRequest:
         state.isLoading = true
-    case .fetchProductSuccess(let products):
+    case let .fetchProductSuccess(products):
         state.products = products
         state.isLoading = false
-    case .fetchProductsFailure(let errorMessage):
+    case let .fetchProductsFailure(errorMessage):
         state.errorMessage = errorMessage
         state.isLoading = false
+    case let .fetchImageRequest(productId):
+        state.productImageIDs.insert(productId) // 다운로드 시작
+    case let .fetchImageSuccess(productId, _):
+        state.productImageIDs.remove(productId)
+    case let .fetchImageFailure(productId, errorMessage):
+        state.productImageIDs.remove(productId)
+    case .clearError:
+        state.errorMessage = nil
     }
     
     return state

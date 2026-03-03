@@ -11,3 +11,16 @@ struct ProductDTO: Codable {
     let price: Int
     let description: String
 }
+
+extension ProductDTO {
+    func toDomain() -> Product {
+        return Product(
+            id: self.id,
+            name: self.name,
+            price: self.price,
+            description: self.description,
+            imageData: nil
+        )
+        
+    }
+}
