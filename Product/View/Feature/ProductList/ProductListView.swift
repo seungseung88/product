@@ -17,7 +17,7 @@ struct ProductListView: View {
         NavigationStack {
             Group {
                 if viewModel.isLoading {
-                    ListSkeleton()
+                    ProductListSkeleton()
                 } else if viewModel.products.isEmpty {
                     EmptyState()
                 } else {
@@ -34,6 +34,9 @@ struct ProductListView: View {
                     .listStyle(.plain)
                 }
             }
+            .navigationDestination(for: String.self) { productId in
+                ProductDetailView(productId: productId)
+            }
             .searchable(text: $viewModel.searchText)
             .navigationTitle("상품 리스트")
             .toolbar {
@@ -48,9 +51,6 @@ struct ProductListView: View {
             .sheet(isPresented: $isPresentingEditSheet) {
                 Text("")
             }
-            .navigationDestination(for: String.self) { productId in
-                Text("productId: \(productId)")
-            }
             .onAppear {
                 viewModel.loadProducts()
             }
@@ -63,46 +63,6 @@ struct ProductListView: View {
                 }
             }
             
-        }
-    }
-}
-
-private struct ListSkeleton: View {
-    var body: some View {
-        List(1...3, id: \.self) { _ in
-            HStack(spacing: 12) {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color(.tertiarySystemGroupedBackground))
-                    .frame(width: 64, height: 64)
-                    
-                    
-                
-                VStack(alignment: .leading, spacing: 6) {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color(.tertiarySystemGroupedBackground))
-                        .frame(height: 16)
-                    
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color(.tertiarySystemGroupedBackground))
-                        .frame(width: 120, height: 14)
-                }
-                .alignmentGuide(.listRowSeparatorLeading) { dimension in
-                    dimension[.leading]
-                }
-            }
-            
-            
-        }
-        .listStyle(.plain)
-    }
-}
-
-private struct EmptyState: View {
-    var body: some View {
-        ContentUnavailableView {
-            Label("아이템 없음", systemImage: "shippingbox")
-        } description: {
-            Text("아이템 추가해주세요")
         }
     }
 }
@@ -163,13 +123,6 @@ private struct ProductRow: View {
 #Preview("Empty View") {
     NavigationStack {
         EmptyState()
-            .navigationTitle("상품 관리")
-    }
-}
-
-#Preview("Skeleton View") {
-    NavigationStack {
-        ListSkeleton()
             .navigationTitle("상품 관리")
     }
 }

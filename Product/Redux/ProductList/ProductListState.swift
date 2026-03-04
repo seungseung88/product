@@ -8,8 +8,6 @@
 struct ProductListState {
     var products: [Product] = []
     var isLoading = false
-    var errorMessage: String?
+    var error: Error?
     var searchQuery = ""
-    
-    var productImageIDs: Set<String> = []
 }

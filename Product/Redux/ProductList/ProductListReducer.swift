@@ -23,17 +23,11 @@ func productListReducer(action: Action, state: ProductListState?) -> ProductList
     case let .fetchProductSuccess(products):
         state.products = products
         state.isLoading = false
-    case let .fetchProductsFailure(errorMessage):
-        state.errorMessage = errorMessage
+    case let .fetchProductsFailure(error):
+        state.error = error
         state.isLoading = false
-    case let .fetchImageRequest(productId):
-        state.productImageIDs.insert(productId) // 다운로드 시작
-    case let .fetchImageSuccess(productId, _):
-        state.productImageIDs.remove(productId)
-    case let .fetchImageFailure(productId, errorMessage):
-        state.productImageIDs.remove(productId)
     case .clearError:
-        state.errorMessage = nil
+        state.error = nil
     }
     
     return state
