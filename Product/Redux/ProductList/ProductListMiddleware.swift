@@ -17,17 +17,15 @@ func makeProductListMiddleware(repository: ProductRepository) -> Middleware<AppS
         { next in
             { action in
                 
-                // 1. 들어온 액션을 일단 Reducer로 보냄 -> 로딩
                 next(action)
                 
-                // 2. 만약 지나간 액션이 fetchProductRequest라면 가로채서 통신 시작
-                if let productAction = action as? ProductListAction, case .fetchProductRequest = productAction {
-                    let query = getState()?.productListState.searchQuery ?? ""
+                if let productAction = action as? ProductListAction, case .fetchProductsRequest = productAction {
+                    let query = getState()?.productListState.keyword ?? ""
                     
                     repository.getProducts(name: query)
                         .subscribe(
                             onSuccess: { products in
-                                dispatch(ProductListAction.fetchProductSuccess(products))
+                                dispatch(ProductListAction.fetchProductsSuccess(products))
                             },
                             onFailure: { error in
                                 dispatch(ProductListAction.fetchProductsFailure(error))

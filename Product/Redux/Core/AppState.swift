@@ -10,4 +10,5 @@ import ReSwift
 struct AppState {
     var productListState = ProductListState()
     var productImageState = ProductImageState()
+    var productState = ProductState()
 }

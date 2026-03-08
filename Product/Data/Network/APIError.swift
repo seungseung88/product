@@ -8,4 +8,6 @@
 enum APIError: Error {
     case fileNotFound
     case decodeError
+    case noData
+    case someError
 }

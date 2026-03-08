@@ -9,9 +9,10 @@ import ReSwift
 import UIKit
 
 enum ProductListAction: Action {
-    case updateSearchQuery(String)
-    case fetchProductRequest
-    case fetchProductSuccess([Product])
+    case fetchProductsRequest(String)
+    case fetchProductsSuccess([Product])
     case fetchProductsFailure(Error)
     case clearError
+    case showToast
+    case hideToast
 }

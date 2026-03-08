@@ -9,24 +9,33 @@ import SwiftUI
 
 struct ProductDetailView: View {
     
-    let productId: String
-    let product: Product
+    @Environment(\.dismiss) private var dismiss
+    @State private var isDeleteAlertPresented = false
+    @State private var isPresentedEditSheet = false
+    @StateObject var viewModel: ProductDetailViewModel
     
-    init(productId: String) {
-        self.productId = productId
-        self.product = ProductStubProvider.stubbedProducts.first(where: { $0.id == productId })!
-    }
+    init(productId: String, viewModel: ProductDetailViewModel? = nil) {
+            _viewModel = StateObject(wrappedValue: viewModel ?? ProductDetailViewModel(productId: productId))
+        }
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16)  {
-                ImageField(product: product)
-                    .frame(height: 260)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                
-                NameField(product: product)
-                PriceField(product: product)
-                DescriptionField(product: product)
+            if viewModel.isFetching {
+                ProductDetailSkeleton()
+            } else if let product = viewModel.product {
+                VStack(alignment: .leading, spacing: 16)  {
+                    ImageField(
+                        uiImage: viewModel.imageCache.getCachedImage(for: product.id)
+                    )
+                    
+                    NameField(product: product)
+                    PriceField(product: product)
+                    DescriptionField(product: product)
+                }
+                .padding(16)
+
+            } else {
+                EmptyState()
             }
         }
         .navigationTitle("상품 상세")
@@ -34,47 +43,55 @@ struct ProductDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    // 편집모드
+                    isPresentedEditSheet = true
                 } label: {
                     Image(systemName: "pencil")
                 }
             }
         }
-        .padding(16)
         .safeAreaInset(edge: .bottom) {
             HStack {
                 Spacer()
-                Button(role: .destructive) {
-                    
-                } label: {
-                    Image(systemName: "trash")
-                        .padding()
-                        .background(.red)
-                        .foregroundStyle(.white)
-                        .clipShape(.circle)
+                DeleteButton() {
+                    isDeleteAlertPresented = true
                 }
                 .padding(.trailing, 24)
+                .deleteAlert(isPresented: $isDeleteAlertPresented) {
+                    viewModel.deleteProduct()
+                }
             }
+        }
+        .sheet(isPresented: $isPresentedEditSheet) {
+            ProductEditView(mode: .edit(productId: viewModel.productId))
+        }
+        .onChange(of: viewModel.isDeleting) { oldValue, newValue in
+            if oldValue && !newValue && viewModel.deleteError == nil {
+                dismiss()
+            }
+        }
+        .onAppear {
+            viewModel.loadProduct()
+            viewModel.loadImageProduct()
         }
     }
 }
 
 private struct ImageField: View {
-    let product: Product
+    let uiImage: UIImage?
     
     var body: some View {
-        Group {
-            if let imageData = product.imageData, let uiImage = UIImage(data: imageData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                ZStack {
-                    Color(.secondarySystemBackground)
+        Color(.secondarySystemBackground)
+            .overlay {
+                if let uiImage {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                } else {
                     Image(systemName: "photo")
                 }
             }
-        }
+            .frame(height: 260)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 
@@ -125,6 +142,55 @@ private struct DescriptionField: View {
     }
 }
 
+private struct DeleteButton: View {
+    let action: () -> Void
+    
+    var body: some View {
+        Button(role: .destructive) {
+            action()
+        } label: {
+            Image(systemName: "trash")
+                .padding()
+                .background(.red)
+                .foregroundStyle(.white)
+                .clipShape(.circle)
+        }
+
+    }
+}
+
+import ReSwift
+
 #Preview {
-    ProductDetailView(productId: "3")
+    ProductDetailView(productId: "1")
+}
+
+#Preview("Empty View") {
+    var mockState = AppState()
+    mockState.productState.product = nil
+    
+    let mockStore = Store<AppState>(
+        reducer: { _, state in state ?? mockState },
+        state: mockState
+    )
+    
+    return ProductDetailView(
+        productId: "1",
+        viewModel: ProductDetailViewModel(productId: "1", store: mockStore)
+    )
+}
+
+#Preview("Loading View") {
+    var mockState = AppState()
+    mockState.productState.isFetching = true
+    
+    let mockStore = Store<AppState>(
+        reducer: { _, state in state ?? mockState },
+        state: mockState
+    )
+    
+    return ProductDetailView(
+        productId: "1",
+        viewModel: ProductDetailViewModel(productId: "1", store: mockStore)
+    )
 }

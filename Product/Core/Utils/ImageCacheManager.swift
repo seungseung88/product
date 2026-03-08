@@ -10,6 +10,7 @@ import UIKit
 protocol ImageCacheType {
     func getCachedImage(for id: String) -> UIImage?
     func setImage(_ image: UIImage, for id: String)
+    func removeImage(for id: String)
 }
 
 final class ImageCacheManager: ImageCacheType {
@@ -19,10 +20,14 @@ final class ImageCacheManager: ImageCacheType {
     private let storage = NSCache<NSString, UIImage>()
     
     func getCachedImage(for id: String) -> UIImage? {
-        return storage.object(forKey: NSString(string: id))
+        return storage.object(forKey: id as NSString)
     }
     
     func setImage(_ image: UIImage, for id: String) {
-        storage.setObject(image, forKey: NSString(string: id))
+        storage.setObject(image, forKey: id as NSString)
+    }
+
+    func removeImage(for id: String) {
+        storage.removeObject(forKey: id as NSString)
     }
 }

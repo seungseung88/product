@@ -9,5 +9,6 @@ struct ProductListState {
     var products: [Product] = []
     var isLoading = false
     var error: Error?
-    var searchQuery = ""
+    var keyword = ""
+    var isShowingToast = false
 }

@@ -8,7 +8,7 @@
 import Foundation
 
 enum PriceFormatter {
-    static private let formatter: NumberFormatter = {
+    private static let formatter: NumberFormatter = {
         let numberFormatter = NumberFormatter()
         numberFormatter.numberStyle = .decimal
         numberFormatter.locale = .init(identifier: "ja-JP")

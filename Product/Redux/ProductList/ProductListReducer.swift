@@ -16,11 +16,10 @@ func productListReducer(action: Action, state: ProductListState?) -> ProductList
     }
     
     switch productListAction {
-    case let .updateSearchQuery(query):
-        state.searchQuery = query
-    case .fetchProductRequest:
+    case let .fetchProductsRequest(keyword):
         state.isLoading = true
-    case let .fetchProductSuccess(products):
+        state.keyword = keyword
+    case let .fetchProductsSuccess(products):
         state.products = products
         state.isLoading = false
     case let .fetchProductsFailure(error):
@@ -28,6 +27,10 @@ func productListReducer(action: Action, state: ProductListState?) -> ProductList
         state.isLoading = false
     case .clearError:
         state.error = nil
+    case .showToast:
+        state.isShowingToast = true
+    case .hideToast:
+        state.isShowingToast = false
     }
     
     return state

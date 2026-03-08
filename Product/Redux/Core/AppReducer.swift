@@ -12,6 +12,7 @@ func appReducer(action: Action, state: AppState?) -> AppState {
     
     state.productListState = productListReducer(action: action, state: state.productListState)
     state.productImageState = productImageReducer(action: action, state: state.productImageState)
+    state.productState = productReducer(action: action, state: state.productState)
     
     return state
 }

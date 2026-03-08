@@ -11,7 +11,12 @@ struct ProductListView: View {
     
     @State private var isErrorPresented = false
     @State private var isPresentingEditSheet = false
-    @StateObject private var viewModel = ProductListViewModel(store: store)
+    @State private var showToastMessage = false
+    @StateObject private var viewModel = ProductListViewModel()
+    
+    init(viewModel: ProductListViewModel = ProductListViewModel()) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+    }
     
     var body: some View {
         NavigationStack {
@@ -37,7 +42,7 @@ struct ProductListView: View {
             .navigationDestination(for: String.self) { productId in
                 ProductDetailView(productId: productId)
             }
-            .searchable(text: $viewModel.searchText)
+            .searchable(text: $viewModel.keyword)
             .navigationTitle("상품 리스트")
             .toolbar {
                 ToolbarItem(){
@@ -48,22 +53,36 @@ struct ProductListView: View {
                     }
                 }
             }
-            .sheet(isPresented: $isPresentingEditSheet) {
-                Text("")
-            }
-            .onAppear {
-                viewModel.loadProducts()
-            }
-            .listFetchErrorAlert(isPresented: $isErrorPresented) {
-                viewModel.clearError()
-            }
-            .onChange(of: viewModel.errorMessage) { _, newErrorMessage in
-                if newErrorMessage != nil {
-                    isErrorPresented = true
-                }
-            }
+//            .onChange(of: viewModel.errorMessage) { _, newErrorMessage in
+//                if newErrorMessage != nil {
+//                    isErrorPresented = true
+//                }
+//            }
             
         }
+        .sheet(isPresented: $isPresentingEditSheet) {
+            ProductEditView(mode: .create)
+        }
+        .refreshable {
+            viewModel.loadProducts()
+        }
+        .onAppear {
+            viewModel.loadProducts()
+        }
+        .listFetchErrorAlert(isPresented: $isErrorPresented) {
+            viewModel.clearError()
+        }
+        .overlay(alignment: .bottom) {
+            if viewModel.isShowingToast {
+                SuccessToastView(toastMessage: "삭제 성공")
+                    .padding(.bottom, 80)
+                    .transition(.move(edge: .bottom))
+                    .onAppear {
+                        viewModel.hideToast()
+                    }
+            }
+        }
+        .animation(.spring(), value: viewModel.isShowingToast)
     }
 }
 
@@ -116,13 +135,36 @@ private struct ProductRow: View {
     }
 }
 
+import ReSwift
+
 #Preview("일반") {
     ProductListView()
 }
 
+#Preview("Loading View") {
+    var mockState = AppState()
+    mockState.productListState.isLoading = true
+    
+    let mockStore = Store<AppState>(
+        reducer: { _, state in state ?? mockState },
+        state: mockState,
+    )
+    
+    let loadingViewModel = ProductListViewModel(store: mockStore)
+    
+    return ProductListView(viewModel: loadingViewModel)
+}
+
 #Preview("Empty View") {
-    NavigationStack {
-        EmptyState()
-            .navigationTitle("상품 관리")
-    }
+    var mockState = AppState()
+    mockState.productListState.products = []
+    
+    let mockStore = Store<AppState>(
+        reducer: { _, state in state ?? mockState },
+        state: mockState,
+    )
+    
+    let emptyViewModel = ProductListViewModel(store: mockStore)
+    
+    return ProductListView(viewModel: emptyViewModel)
 }

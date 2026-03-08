@@ -9,77 +9,52 @@ import Foundation
 import ReSwift
 import Combine
 import UIKit
-
-
-// ObservableObject를 채택해서 SwiftUI가 이 ViewModel의 변화를 감지
-// StoreSubscriber를 채택해서 Redux Store의 변화를 감지
-struct ProductListViewState: Equatable {
-    let products: [Product]
-    let isLoading: Bool
-    let errorMessage: String?
-    let loadingImageIDs: Set<String>
-}
+import SwiftUI
 
 class ProductListViewModel: ObservableObject, StoreSubscriber {
     
-    typealias StoreSubscriberStateType = ProductListViewState
+    typealias StoreSubscriberStateType = AppState
     
-    // View가 바라볼 상태들
     @Published var products: [Product] = []
-    @Published var isLoading: Bool = false
-    @Published var errorMessage: String? = nil
-    @Published var searchText: String = ""
+    @Published var isLoading = false
+    @Published var error: Error?
+    @Published var keyword = ""
+    @Published var isShowingToast = false
+    
     @Published var loadingImageIDs: Set<String> = []
     
     let imageCache: ImageCacheType
     private let store: Store<AppState>
     private var cancellables = Set<AnyCancellable>()
     
-    init(store: Store<AppState>, imageCache: ImageCacheType = ImageCacheManager.shared) {
+    init(store: Store<AppState> = appStore, imageCache: ImageCacheType = ImageCacheManager.shared) {
         self.store = store
         self.imageCache = imageCache
-        // 뷰 모델이 생성될 때 Store를 구독
-        store.subscribe(self) { subscription in
-            subscription.select { state in
-                ProductListViewState(
-                    products: state.productListState.products,
-                    isLoading: state.productListState.isLoading,
-                    errorMessage: state.productListState.error?.localizedDescription,
-                    loadingImageIDs: state.productImageState.productImageIDs
-                )
-            }.skipRepeats()
-        }
-        binding()
-    }
-    
-    private func binding() {
-        $searchText
-            .dropFirst()
-            .debounce(for: 0.3, scheduler: DispatchQueue.main)
-            .removeDuplicates()
-            .sink { searchText in
-                // 1. Redux의 searchQuery 상태 변경
-                self.store.dispatch(ProductListAction.updateSearchQuery(searchText))
-                
-                // 2. 바뀐 검색어로 다시 API 요청
-                self.store.dispatch(ProductListAction.fetchProductRequest)
-            }
-            .store(in: &cancellables)
+        self.store.subscribe(self)
+        bindingKeyword()
     }
     
     deinit {
         store.unsubscribe(self)
     }
     
-    func newState(state: ProductListViewState) {
-        self.products = state.products
-        self.isLoading = state.isLoading
-        self.errorMessage = state.errorMessage
-        self.loadingImageIDs = state.loadingImageIDs
+    func newState(state: AppState) {
+        DispatchQueue.main.async {
+            let productListState = state.productListState
+            self.products = productListState.products
+            self.isLoading = productListState.isLoading
+            self.error = productListState.error
+            self.keyword = productListState.keyword
+            self.isShowingToast = productListState.isShowingToast
+            
+            let productImageState = state.productImageState
+            self.loadingImageIDs = productImageState.productImageIDs
+        }
+        
     }
     
     func loadProducts() {
-        store.dispatch(ProductListAction.fetchProductRequest)
+        store.dispatch(ProductListAction.fetchProductsRequest(keyword))
     }
     
     func loadImage(for productId: String) {
@@ -90,5 +65,22 @@ class ProductListViewModel: ObservableObject, StoreSubscriber {
     
     func clearError() {
         store.dispatch(ProductListAction.clearError)
+    }
+    
+    func hideToast() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            self.store.dispatch(ProductListAction.hideToast)
+        }
+    }
+    
+    private func bindingKeyword() {
+        $keyword
+            .dropFirst()
+            .debounce(for: 0.3, scheduler: DispatchQueue.main)
+            .removeDuplicates()
+            .sink { keyword in
+                self.store.dispatch(ProductListAction.fetchProductsRequest(keyword))
+            }
+            .store(in: &cancellables)
     }
 }

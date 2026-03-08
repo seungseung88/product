@@ -18,10 +18,18 @@ func productImageReducer(action: Action, state: ProductImageState?) -> ProductIm
     switch productImageAction {
     case let .fetchImageRequest(productId):
         state.productImageIDs.insert(productId)
-    case let .fetchImageSuccess(productId, _):
+    case let .fetchImageSuccess(productId):
         state.productImageIDs.remove(productId)
-    case let .fetchImageFailure(productId, errorMessage):
+    case let .fetchImageFailure(productId):
         state.productImageIDs.remove(productId)
+        
+    // delete
+    case .deleteImageRequest:
+        break
+    case let .deleteImageSuccess(productId):
+        state.productImageIDs.remove(productId)
+    case .deleteImageFailure:
+        break
     }
     
     return state

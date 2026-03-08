@@ -8,15 +8,11 @@
 import Foundation
 import RxSwift
 
-struct ProductRepositoryImpl: ProductRepository {
+class ProductRepositoryImpl: ProductRepository {
     func getProducts(name: String = "") -> Single<[Product]> {
         return Single.create { single in
             do {
-                guard let productDTOs: [ProductDTO] = try Bundle.main.loadAndDecodeJson(filename: "products") else {
-                    single(.failure(APIError.fileNotFound))
-                    return Disposables.create()
-                }
-                
+                let productDTOs = try self.loadMockProducts()
                 let products = productDTOs.map { $0.toDomain() }
                 var filteredProducts = products
                 
@@ -32,34 +28,153 @@ struct ProductRepositoryImpl: ProductRepository {
             
             return Disposables.create()
         }
+        .delay(.milliseconds(500), scheduler: MainScheduler.instance)
     }
     
     func getProductImage(productId: String) -> Single<Data> {
         return Single.create { single in
-            
-            
             do {
-                guard let productImageDTOs: [ProductImageDTO] = try Bundle.main.loadAndDecodeJson(filename: "productImages") else {
-                    single(.failure(APIError.fileNotFound))
+                let productImageDTO = try self.loadMockProductImage(productId: productId)
+                
+                guard let imageData = Data(base64Encoded: productImageDTO.productImage) else {
+                    single(.failure(APIError.decodeError))
                     return Disposables.create()
                 }
                 
-                if let targetDTO = productImageDTOs.first(where: { $0.productId == productId }) {
-                    if let imageData = Data(base64Encoded: targetDTO.productImage) {
-                        single(.success(imageData))
-                    } else {
-                        single(.failure(APIError.decodeError))
-
-                    }
-                } else {
-                    single(.failure(APIError.fileNotFound))
-                }
+                single(.success(imageData))
             } catch {
                 single(.failure(APIError.decodeError))
             }
             
             return Disposables.create()
         }
+        .delay(.milliseconds(500), scheduler: MainScheduler.instance)
+    }
+    
+    func getProduct(id: String) -> Single<Product> {
+        return Single.create { single in
+            
+            do {
+                let productDTO = try self.loadMockProduct(id: id)
+                let product = productDTO.toDomain()
+                
+                single(.success(product))
+            } catch {
+                single(.failure(APIError.someError))
+            }
+            
+            return Disposables.create()
+        }
+        .delay(.milliseconds(500), scheduler: MainScheduler.instance)
+    }
+    
+    func deleteProduct(id: String) -> Single<Void> {
+        return Single.create { single in            
+            do {
+                let productDTO = try self.loadMockProduct(id: id)
+                self.mockProductDTOs.removeAll(where: { $0.id == productDTO.id })
+
+                single(.success(()))
+            } catch {
+                single(.failure(APIError.someError))
+            }
+            
+            return Disposables.create()
+        }
+        .delay(.milliseconds(500), scheduler: MainScheduler.instance)
+    }
+    
+    func createProduct(product: Product) -> Single<Void> {
+        return Single.create { single in
+            do {
+                let productDTO = try self.loadMockProduct(id: id)
+                self.mockProductDTOs.removeAll(where: { $0.id == productDTO.id })
+
+                single(.success(()))
+            } catch {
+                single(.failure(APIError.someError))
+            }
+            
+            return Disposables.create()
+        }
+        .delay(.milliseconds(500), scheduler: MainScheduler.instance)
+    }
+    
+    func updateProduct(id: String) -> Single<Void> {
+        return Single.create { single in
+            do {
+                let productDTO = try self.loadMockProduct(id: id)
+                self.mockProductDTOs.removeAll(where: { $0.id == productDTO.id })
+
+                single(.success(()))
+            } catch {
+                single(.failure(APIError.someError))
+            }
+            
+            return Disposables.create()
+        }
+        .delay(.milliseconds(500), scheduler: MainScheduler.instance)
+    }
+    
+    func deleteProductImage(productId: String) -> Single<Void> {
+        return Single.create { single in
+            do {
+                let productImageDTO = try self.loadMockProductImage(productId: productId)
+                self.mockProductImageDTOs.removeAll(where: { $0.productId == productImageDTO.productId })
+
+                single(.success(()))
+            } catch {
+                single(.failure(APIError.someError))
+            }
+            
+            return Disposables.create()
+        }
+        .delay(.milliseconds(500), scheduler: MainScheduler.instance)
+    }
+    
+    private var mockProductDTOs: [ProductDTO] = {
+        if let productDTOs: [ProductDTO] = try? Bundle.main.loadAndDecodeJson(filename: "products") {
+            return productDTOs
+        } else {
+            return []
+        }
+    }()
+    
+    private var mockProductImageDTOs: [ProductImageDTO] = {
+        if let productImageDTOs: [ProductImageDTO] = try? Bundle.main.loadAndDecodeJson(filename: "productImages") {
+            return productImageDTOs
+        } else {
+            return []
+        }
+    }()
+    
+    func loadMockProducts() throws -> [ProductDTO] {
+        guard !mockProductDTOs.isEmpty else {
+            throw APIError.fileNotFound
+        }
+        
+        return mockProductDTOs
+    }
+
+    func loadMockProduct(id: String) throws -> ProductDTO {
+        guard let productDTO = mockProductDTOs.first(where: { $0.id == id }) else {
+            throw APIError.noData
+        }
+        
+        return productDTO
+    }
+    
+    
+    func loadMockProductImage(productId: String) throws -> ProductImageDTO {
+        guard !mockProductImageDTOs.isEmpty else {
+            throw APIError.fileNotFound
+        }
+        
+        guard let productImageDTO = mockProductImageDTOs.first(where: { $0.productId == productId }) else {
+            throw APIError.noData
+        }
+        
+        return productImageDTO
     }
 }
 
